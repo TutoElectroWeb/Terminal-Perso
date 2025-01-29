@@ -1,28 +1,43 @@
-# README.md
+# Terminal Série
 
-# Mon Projet Python
+serial_terminal est une application de terminal série avec une interface graphique utilisant PyQt5. Il permet de se connecter à un port série, d'envoyer et de recevoir des données, et d'afficher les messages dans une interface utilisateur.
 
-Ce projet contient une application qui gère la communication série et fournit une interface utilisateur. 
+## Exécuter le script d'installation
 
-## Fichiers du projet
+Utilisez le script batch `install_serial_terminal.bat` pour installer les dépendances.  
+Si l'installation est réussi le fichier `serial_terminal.txt` sera modifié en programme python sans console `serial_terminal.pyw` 
 
-- `serial_terminal.pyw` : Code principal de l'application.
-- `requirements.txt` : Liste des dépendances nécessaires.
+## Utilisation
 
-## Installation des dépendances
++ Double cliquez sur le fichier `serial_terminal.pyw`  
 
-Pour installer les dépendances nécessaires, exécutez la commande suivante dans le terminal :
+ou
 
-```
-pip install -r requirements.txt
-```
++ Ouvrez une invite de commande, naviguez jusqu'au répertoire contenant les fichiers, puis exécutez le script batch :
+   ```
+   python serial_terminal.pyw
 
-## Exécution du programme
+## Visualisation
+# Terminal Série
 
-Après avoir installé les dépendances, vous pouvez exécuter le programme en utilisant Python :
+serial_terminal est une application de terminal série avec une interface graphique utilisant PyQt5. Il permet de se connecter à un port série, d'envoyer et de recevoir des données, et d'afficher les messages dans une interface utilisateur.
 
-```
-python src/serial_terminal.pyw 
-``` 
+## Exécuter le script d'installation
 
-Assurez-vous d'avoir Python installé sur votre machine.
+Utilisez le script batch `install_serial_terminal.bat` pour installer les dépendances.  
+Si l'installation est réussi le fichier `serial_terminal.txt` sera modifié en programme python sans console `serial_terminal.pyw` 
+
+## Utilisation
+
++ Double cliquez sur le fichier `serial_terminal.pyw`  
+
+ou
+
++ Ouvrez une invite de commande, naviguez jusqu'au répertoire contenant les fichiers, puis exécutez le script batch :
+    ```
+    python serial_terminal.pyw
+    ```
+
+## Visualisation
+
+![Visualisation du terminal série](serial_terminal.png)

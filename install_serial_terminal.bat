@@ -1,5 +1,6 @@
-REM filepath: /C:/Users/weedm/Desktop/Terminal Perso/install_and_run.bat
 @echo off
+setlocal enableextensions enabledelayedexpansion
+
 REM Vérifier si Python est installé
 python --version
 IF %ERRORLEVEL% NEQ 0 (
@@ -38,8 +39,16 @@ IF %ERRORLEVEL% NEQ 0 (
 
 REM Installer les dépendances
 pip install PyQt5 pyserial
+IF %ERRORLEVEL% NEQ 0 (
+    echo L'installation des dépendances a échoué. Masquage du fichier serial_terminal.pyw...
+    ren serial_terminal.pyw serial_terminal.pyw.hidden
+    exit /b 1
+)
 
-REM Exécuter le script en arrière-plan
-start pythonw serial_terminal.pyw
+REM Si aucune erreur, renommer le fichier txt en pyw
+set "folder=%~dp0"
+cd /d "!folder!"
+ren "serial_terminal.txt" "serial_terminal.pyw"
 
+endlocal
 exit
