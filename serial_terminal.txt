@@ -19,7 +19,7 @@ class Terminal(QMainWindow):  # Définition d'une classe Terminal qui hérite de
         self.read_thread_running = False  # Drapeau pour contrôler le thread de lecture, initialement défini à False
         self.initUI()  # Appel à la méthode pour configurer l'interface utilisateur
 
-    def initUI(self):
+    def initUI(self): # Méthode pour configurer l'interface utilisateur
         # Définir la taille de la fenêtre
         self.resize(800, 500)
 
