@@ -1,20 +1,23 @@
-import sys
-import threading
-import signal
+import sys  # Importation du module sys pour des paramètres et fonctions spécifiques au système
+import threading  # Importation du module threading pour créer et gérer des threads
+import signal  # Importation du module signal pour définir des gestionnaires d'événements asynchrones
+
+# Importation de diverses classes du module PyQt5.QtWidgets pour créer l'interface graphique
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton,
                              QTextEdit, QLineEdit, QMainWindow, QMenu, QAction, QFontDialog, QColorDialog, QMessageBox, QInputDialog, QStyleFactory, QCheckBox, QSpacerItem, QSizePolicy)
-from PyQt5.QtGui import QColor, QTextCursor, QFont
-from PyQt5.QtCore import Qt, QMetaObject, Q_ARG, pyqtSlot
-import serial.tools.list_ports
-import serial
 
-class Terminal(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.serial_port = None  # Instance du port série
-        self.read_thread = None  # Initializing the read thread
-        self.read_thread_running = False  # Flag to control the read thread
-        self.initUI()
+from PyQt5.QtGui import QColor, QTextCursor, QFont  # Importation de classes du module PyQt5.QtGui pour les couleurs, le curseur de texte et les polices
+from PyQt5.QtCore import Qt, QMetaObject, Q_ARG, pyqtSlot  # Importation de classes du module PyQt5.QtCore pour les fonctionnalités de base
+import serial.tools.list_ports  # Importation du module list_ports de pySerial pour lister les ports série
+import serial  # Importation du module serial de pySerial pour la communication série
+
+class Terminal(QMainWindow):  # Définition d'une classe Terminal qui hérite de QMainWindow
+    def __init__(self):  # Méthode d'initialisation de la classe Terminal
+        super().__init__()  # Appel à la méthode d'initialisation de la superclasse QMainWindow
+        self.serial_port = None  # Instance du port série, initialisée à None
+        self.read_thread = None  # Initialisation du thread de lecture, initialement défini à None
+        self.read_thread_running = False  # Drapeau pour contrôler le thread de lecture, initialement défini à False
+        self.initUI()  # Appel à la méthode pour configurer l'interface utilisateur
 
     def initUI(self):
         # Définir la taille de la fenêtre
@@ -26,272 +29,275 @@ class Terminal(QMainWindow):
         self.setFont(font)
 
         # Layout principal
-        self.centralWidget = QWidget()
-        self.setCentralWidget(self.centralWidget)
-        self.layout = QVBoxLayout()
-        self.centralWidget.setLayout(self.layout)
+        self.centralWidget = QWidget()  # Créer un widget central
+        self.setCentralWidget(self.centralWidget)  # Définir le widget central
+        self.layout = QVBoxLayout()  # Créer un layout vertical principal
+        self.centralWidget.setLayout(self.layout)  # Définir le layout pour le widget central
 
         # Barre de sélection en haut
-        self.topBar = QHBoxLayout()
+        self.topBar = QHBoxLayout()  # Créer un layout horizontal pour la barre de sélection
 
         # Groupement du label et de la sélection de port
-        self.portLayout = QHBoxLayout()
-        self.portLabel = QLabel('Port :')
-        self.portLayout.addWidget(self.portLabel)
-        self.portSelect = QComboBox()
-        self.refreshPorts()
-        self.portLayout.addWidget(self.portSelect)
-        self.topBar.addLayout(self.portLayout)
+        self.portLayout = QHBoxLayout()  # Créer un layout horizontal pour le port
+        self.portLabel = QLabel('Port :')  # Créer un label pour le port
+        self.portLayout.addWidget(self.portLabel)  # Ajouter le label au layout de port
+        self.portSelect = QComboBox()  # Créer une combo box pour la sélection de port
+        self.refreshPorts()  # Appeler la méthode pour actualiser les ports disponibles
+        self.portLayout.addWidget(self.portSelect)  # Ajouter la combo box au layout de port
+        self.topBar.addLayout(self.portLayout)  # Ajouter le layout de port à la barre de sélection
 
         # Ajouter un espace entre les blocs
         self.topBar.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
         # Groupement du label et de la sélection de vitesse
-        self.baudLayout = QHBoxLayout()
-        self.baudLabel = QLabel('Vitesse :')
-        self.baudLayout.addWidget(self.baudLabel)
-        self.baudSelect = QComboBox()
-        self.baudSelect.addItems(['9600', '19200', '38400', '57600', '115200'])
-        self.baudLayout.addWidget(self.baudSelect)
-        self.topBar.addLayout(self.baudLayout)
+        self.baudLayout = QHBoxLayout()  # Créer un layout horizontal pour la vitesse
+        self.baudLabel = QLabel('Vitesse :')  # Créer un label pour la vitesse
+        self.baudLayout.addWidget(self.baudLabel)  # Ajouter le label au layout de vitesse
+        self.baudSelect = QComboBox()  # Créer une combo box pour la sélection de vitesse
+        self.baudSelect.addItems(['9600', '19200', '38400', '57600', '115200'])  # Ajouter des options à la combo box
+        self.baudLayout.addWidget(self.baudSelect)  # Ajouter la combo box au layout de vitesse
+        self.topBar.addLayout(self.baudLayout)  # Ajouter le layout de vitesse à la barre de sélection
 
         # Ajouter un espace entre les blocs
         self.topBar.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
-        self.connectBtn = QPushButton('Connecter')
+        # Bouton de connexion
+        self.connectBtn = QPushButton('Connecter')  # Créer un bouton pour la connexion
         self.connectBtn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)  # Ajuster la taille du bouton au texte
-        self.connectBtn.clicked.connect(self.toggle_connection)
-        self.topBar.addWidget(self.connectBtn)
+        self.connectBtn.clicked.connect(self.toggle_connection)  # Connecter le signal du bouton à la méthode toggle_connection
+        self.topBar.addWidget(self.connectBtn)  # Ajouter le bouton à la barre de sélection
 
         # Ajouter un espace entre les boutons
         self.topBar.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
-        self.refreshBtn = QPushButton('Rafraîchir')
+        # Bouton de rafraîchissement
+        self.refreshBtn = QPushButton('Rafraîchir')  # Créer un bouton pour rafraîchir
         self.refreshBtn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)  # Ajuster la taille du bouton au texte
-        self.refreshBtn.clicked.connect(self.refreshPorts)
-        self.topBar.addWidget(self.refreshBtn)
+        self.refreshBtn.clicked.connect(self.refreshPorts)  # Connecter le signal du bouton à la méthode refreshPorts
+        self.topBar.addWidget(self.refreshBtn)  # Ajouter le bouton à la barre de sélection
 
-        self.layout.addLayout(self.topBar)
+        self.layout.addLayout(self.topBar)  # Ajouter la barre de sélection au layout principal
 
         # Zone de terminal
-        self.terminal = QTextEdit()
-        self.layout.addWidget(self.terminal)
+        self.terminal = QTextEdit()  # Créer une zone de texte pour le terminal
+        self.layout.addWidget(self.terminal)  # Ajouter la zone de texte au layout principal
 
         # Stocker les valeurs par défaut initiales après avoir créé QTextEdit
-        self.defaultFont = self.terminal.font()
-        self.defaultTextColor = self.terminal.textColor()
-        self.defaultBgColor = self.terminal.palette().base().color()
+        self.defaultFont = self.terminal.font()  # Sauvegarder la police par défaut
+        self.defaultTextColor = self.terminal.textColor()  # Sauvegarder la couleur de texte par défaut
+        self.defaultBgColor = self.terminal.palette().base().color()  # Sauvegarder la couleur de fond par défaut
 
         # Zone de saisie en bas
-        self.bottomBar = QVBoxLayout()
-        self.inputLayout = QHBoxLayout()
-        self.inputField = QLineEdit()
+        self.bottomBar = QVBoxLayout()  # Créer un layout vertical pour la barre en bas
+        self.inputLayout = QHBoxLayout()  # Créer un layout horizontal pour la zone de saisie
+        self.inputField = QLineEdit()  # Créer un champ de saisie
         self.inputField.setFixedWidth(500)  # Définir la largeur de la zone de saisie à 500 pixels
-        self.inputLayout.addWidget(self.inputField)
+        self.inputLayout.addWidget(self.inputField)  # Ajouter le champ de saisie au layout de saisie
 
-        self.sendBtn = QPushButton('Envoyer')
+        # Bouton d'envoi
+        self.sendBtn = QPushButton('Envoyer')  # Créer un bouton pour envoyer
         self.sendBtn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)  # Ajuster la taille du bouton au texte
-        self.sendBtn.clicked.connect(self.sendData)
-        self.inputLayout.addWidget(self.sendBtn)
+        self.sendBtn.clicked.connect(self.sendData)  # Connecter le signal du bouton à la méthode sendData
+        self.inputLayout.addWidget(self.sendBtn)  # Ajouter le bouton au layout de saisie
 
-        self.bottomBar.addLayout(self.inputLayout)
+        self.bottomBar.addLayout(self.inputLayout)  # Ajouter le layout de saisie à la barre en bas
 
         # Ajouter une ligne pour les options supplémentaires
-        self.optionsLayout = QHBoxLayout()
-        self.clearBtn = QPushButton('Effacer le terminal')
-        self.clearBtn.clicked.connect(self.clearTerminal)
-        self.optionsLayout.addWidget(self.clearBtn)
+        self.optionsLayout = QHBoxLayout()  # Créer un layout horizontal pour les options supplémentaires
+        self.clearBtn = QPushButton('Effacer le terminal')  # Créer un bouton pour effacer le terminal
+        self.clearBtn.clicked.connect(self.clearTerminal)  # Connecter le signal du bouton à la méthode clearTerminal
+        self.optionsLayout.addWidget(self.clearBtn)  # Ajouter le bouton aux options supplémentaires
 
         self.optionsLayout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
-        self.scrollCheckBox = QCheckBox('Défilement automatique')
-        self.scrollCheckBox.setChecked(True)
-        self.optionsLayout.addWidget(self.scrollCheckBox)
+        self.scrollCheckBox = QCheckBox('Défilement automatique')  # Créer une checkbox pour le défilement automatique
+        self.scrollCheckBox.setChecked(True)  # Définir la checkbox comme cochée par défaut
+        self.optionsLayout.addWidget(self.scrollCheckBox)  # Ajouter la checkbox aux options supplémentaires
 
         self.optionsLayout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
-        self.nlcrLabel = QLabel('EOL :')
-        self.optionsLayout.addWidget(self.nlcrLabel)
-        self.nlcrChoice = QComboBox()
-        self.nlcrChoice.addItems(['NL', 'CR', 'NL+CR'])
-        self.optionsLayout.addWidget(self.nlcrChoice)
+        self.nlcrLabel = QLabel('EOL :')  # Créer un label pour les options de fin de ligne
+        self.optionsLayout.addWidget(self.nlcrLabel)  # Ajouter le label aux options supplémentaires
+        self.nlcrChoice = QComboBox()  # Créer une combo box pour les options de fin de ligne
+        self.nlcrChoice.addItems(['NL', 'CR', 'NL+CR'])  # Ajouter les options à la combo box
+        self.optionsLayout.addWidget(self.nlcrChoice)  # Ajouter la combo box aux options supplémentaires
 
         self.optionsLayout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
-        self.bottomBar.addLayout(self.optionsLayout)
-        self.layout.addLayout(self.bottomBar)
+        self.bottomBar.addLayout(self.optionsLayout)  # Ajouter le layout des options supplémentaires à la barre en bas
+        self.layout.addLayout(self.bottomBar)  # Ajouter la barre en bas au layout principal
 
-        self.setWindowTitle('Terminal de Communication')
+        self.setWindowTitle('Terminal de Communication')  # Définir le titre de la fenêtre
 
         # Créer les menus pour les paramètres du terminal
-        self.menu = self.menuBar().addMenu('Paramètres')
+        self.menu = self.menuBar().addMenu('Paramètres')  # Ajouter un menu 'Paramètres' à la barre de menu
 
-        # Police
-        self.fontAction = QAction('Changer la police', self)
-        self.fontAction.triggered.connect(self.changeFont)
-        self.menu.addAction(self.fontAction)
+        # Option de changement de police
+        self.fontAction = QAction('Changer la police', self)  # Créer une action pour changer la police
+        self.fontAction.triggered.connect(self.changeFont)  # Connecter l'action à la méthode changeFont
+        self.menu.addAction(self.fontAction)  # Ajouter l'action au menu
 
-        # Couleur du texte
-        self.textColorAction = QAction('Changer couleur du texte', self)
-        self.textColorAction.triggered.connect(self.changeTextColor)
-        self.menu.addAction(self.textColorAction)
+        # Option de changement de couleur de texte
+        self.textColorAction = QAction('Changer couleur du texte', self)  # Créer une action pour changer la couleur du texte
+        self.textColorAction.triggered.connect(self.changeTextColor)  # Connecter l'action à la méthode changeTextColor
+        self.menu.addAction(self.textColorAction)  # Ajouter l'action au menu
 
-        # Couleur du fond
-        self.bgColorAction = QAction('Changer couleur du fond', self)
-        self.bgColorAction.triggered.connect(self.changeBgColor)
-        self.menu.addAction(self.bgColorAction)
+        # Option de changement de couleur de fond
+        self.bgColorAction = QAction('Changer couleur du fond', self)  # Créer une action pour changer la couleur du fond
+        self.bgColorAction.triggered.connect(self.changeBgColor)  # Connecter l'action à la méthode changeBgColor
+        self.menu.addAction(self.bgColorAction)  # Ajouter l'action au menu
 
-        # Styles d'interface
-        self.styleAction = QAction('Changer le style', self)
-        self.styleAction.triggered.connect(self.changeStyle)
-        self.menu.addAction(self.styleAction)
+        # Option de changement de style d'interface
+        self.styleAction = QAction('Changer le style', self)  # Créer une action pour changer le style de l'interface
+        self.styleAction.triggered.connect(self.changeStyle)  # Connecter l'action à la méthode changeStyle
+        self.menu.addAction(self.styleAction)  # Ajouter l'action au menu
 
         # Thèmes
-        self.themeAction = QAction('Changer le thème', self)
-        self.themeAction.triggered.connect(self.changeTheme)
-        self.menu.addAction(self.themeAction)
+        self.themeAction = QAction('Changer le thème', self) # Créer une action pour changer le thème
+        self.themeAction.triggered.connect(self.changeTheme) # Connecter l'action à la méthode changeTheme
+        self.menu.addAction(self.themeAction) # Ajouter l'action au menu
 
         # Réinitialiser aux paramètres par défaut
-        self.resetConfigAction = QAction('Réinitialiser', self)
-        self.resetConfigAction.triggered.connect(self.resetConfig)
-        self.menu.addAction(self.resetConfigAction)
+        self.resetConfigAction = QAction('Réinitialiser', self) # Créer une action pour réinitialiser les paramètres
+        self.resetConfigAction.triggered.connect(self.resetConfig) # Connecter l'action à la méthode resetConfig
+        self.menu.addAction(self.resetConfigAction) # Ajouter l'action au menu
 
-        self.show()
+        self.show() # Afficher la fenêtre
 
-    def refreshPorts(self):
-        self.portSelect.clear()
-        ports = [port.device for port in serial.tools.list_ports.comports()]
-        self.portSelect.addItems(ports)
+    # Méthodes pour gérer les événements et les actions de l'interface utilisateur
+    def refreshPorts(self): # Méthode pour actualiser les ports série disponibles
+        self.portSelect.clear()  # Vider la combo box des ports
+        ports = [port.device for port in serial.tools.list_ports.comports()]  # Obtenir la liste des ports disponibles
+        self.portSelect.addItems(ports)  # Ajouter les ports disponibles à la combo box
 
-    def toggle_connection(self):
-        if self.serial_port and self.serial_port.is_open:
-            self.disconnect()
+    def toggle_connection(self): # Méthode pour gérer la connexion/déconnexion du port série
+        if self.serial_port and self.serial_port.is_open:  # Vérifier si le port série est ouvert
+            self.disconnect()  # Si oui, déconnecter
         else:
-            self.connect()
+            self.connect()  # Sinon, connecter
 
-    def connect(self):
-        port = self.portSelect.currentText()
-        baud = int(self.baudSelect.currentText())
+    def connect(self): # Méthode pour gérer la connexion au port série
+        port = self.portSelect.currentText()  # Obtenir le port sélectionné
+        baud = int(self.baudSelect.currentText())  # Obtenir le taux de transfert sélectionné
         try:
-            self.serial_port = serial.Serial(port, baudrate=baud, timeout=1)
-            self.showMessage(f'Connecté à {port} à {baud} baud.')
-            self.read_thread_running = True
-            self.read_thread = threading.Thread(target=self.readData)
-            self.read_thread.start()
-            self.connectBtn.setText('Déconnecter')
+            self.serial_port = serial.Serial(port, baudrate=baud, timeout=1)  # Tenter d'ouvrir le port série avec les paramètres
+            self.showMessage(f'Connecté à {port} à {baud} baud.')  # Afficher un message de connexion réussie
+            self.read_thread_running = True  # Mettre le flag de lecture à True
+            self.read_thread = threading.Thread(target=self.readData)  # Créer un thread pour lire les données du port série
+            self.read_thread.start()  # Démarrer le thread de lecture
+            self.connectBtn.setText('Déconnecter')  # Changer le texte du bouton en 'Déconnecter'
         except serial.SerialException as e:
-            self.showMessage(f'Échec de la connexion au port {port}.')
+            self.showMessage(f'Échec de la connexion au port {port}.')  # Afficher un message d'échec de connexion
         except Exception as e:
-            self.showMessage('Échec de la connexion.', error=True)
+            self.showMessage('Échec de la connexion.', error=True)  # Afficher un message d'échec de connexion générique
 
-    def readData(self):
-        while self.read_thread_running and self.serial_port and self.serial_port.is_open:
+    def readData(self): # Méthode pour lire les données du port série
+        while self.read_thread_running and self.serial_port and self.serial_port.is_open:  # Continuer à lire tant que le thread est actif et le port est ouvert
             try:
-                data = self.serial_port.readline()
-                if data:
+                data = self.serial_port.readline()  # Lire une ligne de données du port série
+                if data:  # Si des données ont été lues
                     try:
-                        decoded_data = data.decode('utf-8')
+                        decoded_data = data.decode('utf-8')  # Tenter de décoder les données en UTF-8
                     except UnicodeDecodeError:
-                        decoded_data = data.decode('latin-1', errors='ignore')
-                    QMetaObject.invokeMethod(self, "appendText", Qt.QueuedConnection, Q_ARG(str, decoded_data))
+                        decoded_data = data.decode('latin-1', errors='ignore')  # En cas d'erreur, utiliser latin-1 en ignorant les erreurs
+                    QMetaObject.invokeMethod(self, "appendText", Qt.QueuedConnection, Q_ARG(str, decoded_data))  # Ajouter les données décodées à l'interface utilisateur
             except serial.SerialException as e:
-                self.showMessage('Erreur de lecture du port série.', error=True)
-                break
+                self.showMessage('Erreur de lecture du port série.', error=True)  # Afficher un message d'erreur de lecture
+                break  # Sortir de la boucle en cas d'erreur
 
-    @pyqtSlot(str)
-    def appendText(self, text):
-        self.terminal.insertPlainText(text)
-        if self.scrollCheckBox.isChecked():
-            self.terminal.moveCursor(QTextCursor.End)
+    @pyqtSlot(str)  # Décorateur pour indiquer que cette méthode est un slot Qt
+    def appendText(self, text): # Méthode pour ajouter du texte au terminal
+        self.terminal.insertPlainText(text)  # Insérer du texte brut dans le terminal
+        if self.scrollCheckBox.isChecked():  # Si la case à cocher de défilement automatique est cochée
+            self.terminal.moveCursor(QTextCursor.End)  # Déplacer le curseur à la fin
 
-    def disconnect(self):
-        if self.serial_port:
-            self.read_thread_running = False
-            self.serial_port.close()
-            self.serial_port = None
-            self.read_thread = None
-            self.showMessage('Déconnecté.')
-            self.connectBtn.setText('Connecter')
+    def disconnect(self):   # Méthode pour gérer la déconnexion du port série
+        if self.serial_port:  # Si le port série est ouvert
+            self.read_thread_running = False  # Arrêter le thread de lecture
+            self.serial_port.close()  # Fermer le port série
+            self.serial_port = None  # Réinitialiser le port série
+            self.read_thread = None  # Réinitialiser le thread de lecture
+            self.showMessage('Déconnecté.')  # Afficher un message de déconnexion
+            self.connectBtn.setText('Connecter')  # Changer le texte du bouton en 'Connecter'
         else:
-            self.showMessage('Aucun port série connecté.', error=True)
+            self.showMessage('Aucun port série connecté.', error=True)  # Afficher un message d'erreur
 
-    def changeFont(self):
-        font, ok = QFontDialog.getFont()
+    def changeFont(self): # Méthode pour changer la police du terminal
+        font, ok = QFontDialog.getFont()  # Ouvrir un dialogue pour sélectionner une police
         if ok:
-            self.terminal.setFont(font)
+            self.terminal.setFont(font)  # Appliquer la police sélectionnée au terminal
 
-    def changeTextColor(self):
-        color = QColorDialog.getColor()
+    def changeTextColor(self): # Méthode pour changer la couleur du texte du terminal
+        color = QColorDialog.getColor()  # Ouvrir un dialogue pour sélectionner une couleur
         if color.isValid():
-            self.terminal.setTextColor(color)
+            self.terminal.setTextColor(color)  # Appliquer la couleur sélectionnée au texte du terminal
 
-    def changeBgColor(self):
-        color = QColorDialog.getColor()
+    def changeBgColor(self):    # Méthode pour changer la couleur de fond du terminal
+        color = QColorDialog.getColor()  # Ouvrir un dialogue pour sélectionner une couleur
         if color.isValid():
-            self.terminal.setStyleSheet(f"background-color: {color.name()};")
+            self.terminal.setStyleSheet(f"background-color: {color.name()};")  # Appliquer la couleur de fond sélectionnée au terminal
 
-    def changeStyle(self):
-        styles = QStyleFactory.keys()
-        selected_style, ok = QInputDialog.getItem(self, "Sélectionner un style", "Styles disponibles:", styles, 0, False)
+    def changeStyle(self): # Méthode pour changer le style de l'interface
+        styles = QStyleFactory.keys()  # Obtenir une liste des styles disponibles
+        selected_style, ok = QInputDialog.getItem(self, "Sélectionner un style", "Styles disponibles:", styles, 0, False)  # Ouvrir un dialogue pour sélectionner un style
         if ok and selected_style:
-            QApplication.setStyle(QStyleFactory.create(selected_style))
+            QApplication.setStyle(QStyleFactory.create(selected_style))  # Appliquer le style sélectionné à l'application
 
-    def changeTheme(self):
+    def changeTheme(self): # Méthode pour changer le thème de l'interface
         themes = {
-            'Thème clair': 'background-color: white; color: black;',
-            'Thème sombre': 'background-color: black; color: white;'
+            'Thème clair': 'background-color: white; color: black;',  # Définir les styles pour le thème clair
+            'Thème sombre': 'background-color: black; color: white;'  # Définir les styles pour le thème sombre
         }
-
-        selected_theme, ok = QInputDialog.getItem(self, "Sélectionner un thème", "Thèmes disponibles:", list(themes.keys()), 0, False)
+        selected_theme, ok = QInputDialog.getItem(self, "Sélectionner un thème", "Thèmes disponibles:", list(themes.keys()), 0, False)  # Ouvrir un dialogue pour sélectionner un thème
         if ok and selected_theme:
-            self.terminal.setStyleSheet(themes[selected_theme])
+            self.terminal.setStyleSheet(themes[selected_theme])  # Appliquer le thème sélectionné au terminal
 
-    def resetConfig(self):
-        self.terminal.setFont(self.defaultFont)
-        self.terminal.setTextColor(self.defaultTextColor)
-        self.terminal.setStyleSheet(f"background-color: {self.defaultBgColor.name()};")
-        self.terminal.clear()
+    def resetConfig(self): # Méthode pour réinitialiser les paramètres de l'interface
+        self.terminal.setFont(self.defaultFont)  # Réinitialiser la police par défaut
+        self.terminal.setTextColor(self.defaultTextColor)  # Réinitialiser la couleur de texte par défaut
+        self.terminal.setStyleSheet(f"background-color: {self.defaultBgColor.name()};")  # Réinitialiser la couleur de fond par défaut
+        self.terminal.clear()  # Effacer le contenu du terminal
 
-    def showMessage(self, message, error=False):
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Critical if error else QMessageBox.Information)
-        msgBox.setText(message)
-        msgBox.setWindowTitle('Erreur' if error else 'Information')
-        msgBox.exec_()
+    def showMessage(self, message, error=False): # Méthode pour afficher un message
+        msgBox = QMessageBox()  # Créer une boîte de message
+        msgBox.setIcon(QMessageBox.Critical if error else QMessageBox.Information)  # Définir l'icône en fonction du type de message
+        msgBox.setText(message)  # Définir le texte du message
+        msgBox.setWindowTitle('Erreur' if error else 'Information')  # Définir le titre de la fenêtre de message
+        msgBox.exec_()  # Afficher la boîte de message
 
-    def sendData(self):
-        if self.serial_port and self.serial_port.is_open:
-            data = self.inputField.text()
-            eol = self.nlcrChoice.currentText()
+    def sendData(self): # Méthode pour envoyer des données via le port série
+        if self.serial_port and self.serial_port.is_open:  # Si le port série est ouvert
+            data = self.inputField.text()  # Obtenir le texte de la zone de saisie
+            eol = self.nlcrChoice.currentText()  # Obtenir le caractère de fin de ligne sélectionné
             if eol == 'NL':
-                data += '\n'
+                data += '\n'  # Ajouter un saut de ligne
             elif eol == 'CR':
-                data += '\r'
+                data += '\r'  # Ajouter un retour chariot
             elif eol == 'NL+CR':
-                data += '\n\r'
+                data += '\n\r'  # Ajouter un saut de ligne et un retour chariot
             try:
-                self.serial_port.write(data.encode())
-                self.inputField.clear()
+                self.serial_port.write(data.encode())  # Écrire les données dans le port série
+                self.inputField.clear()  # Effacer le texte de la zone de saisie
             except serial.SerialException as e:
-                self.showMessage('Erreur lors de l\'envoi des données.', error=True)
+                self.showMessage('Erreur lors de l\'envoi des données.', error=True)  # Afficher un message d'erreur
         else:
-            self.showMessage('Aucun port série connecté.', error=True)
+            self.showMessage('Aucun port série connecté.', error=True)  # Afficher un message d'erreur
 
-    def clearTerminal(self):
-        self.terminal.clear()
+    def clearTerminal(self): # Méthode pour effacer le contenu du terminal
+        self.terminal.clear()  # Effacer le contenu du terminal
 
-    def cleanup(self):
-        if self.serial_port and self.serial_port.is_open:
-            self.read_thread_running = False
-            self.serial_port.close()
+    def cleanup(self): # Méthode pour nettoyer les ressources avant de quitter l'application
+        if self.serial_port and self.serial_port.is_open:  # Vérifier si le port série est ouvert
+            self.read_thread_running = False  # Arrêter le thread de lecture
+            self.serial_port.close()  # Fermer le port série
 
-def signal_handler(sig, frame):
-    QApplication.quit()
+    def signal_handler(sig, frame): # Fonction pour gérer les signaux
+        QApplication.quit()  # Quitter l'application PyQt5
 
-signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)  # Connecter le signal SIGINT (Ctrl+C) à la fonction signal_handler
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    terminal = Terminal()
-    app.aboutToQuit.connect(terminal.cleanup)  # Connecter la méthode cleanup au signal aboutToQuit
-    sys.exit(app.exec_())
+if __name__ == "__main__": # Vérifier si le script est exécuté en tant que programme principal
+    app = QApplication(sys.argv)  # Créer l'application PyQt5
+    terminal = Terminal()  # Créer une instance de la classe Terminal
+    app.aboutToQuit.connect(terminal.cleanup)  # Connecter la méthode cleanup au signal aboutToQuit de l'application
+    sys.exit(app.exec_())  # Lancer la boucle d'événements de l'application
