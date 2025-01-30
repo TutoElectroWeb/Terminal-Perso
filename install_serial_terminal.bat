@@ -1,5 +1,5 @@
 @echo off
-setlocal enableextensions enabledelayedexpansion
+REM Désactive l'affichage des commandes dans la console
 
 REM Vérifier si Python est installé
 python --version
@@ -45,10 +45,22 @@ IF %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
-REM Si aucune erreur, renommer le fichier txt en pyw
-set "folder=%~dp0"
-cd /d "!folder!"
-ren "serial_terminal.txt" "serial_terminal.pyw"
+REM Décacher le fichier serial_terminal.txt
+attrib -h serial_terminal.txt
+
+REM Renommer le fichier serial_terminal.txt en serial_terminal.pyw
+ren serial_terminal.txt serial_terminal.pyw
+
+REM Supprimer le fichier README.md s'il existe
+IF EXIST README.md (
+    del README.md
+)
+
+REM Supprimer ce fichier batch
+del "%~f0"
 
 endlocal
+REM Termine le bloc de localisation des variables et restaure les paramètres d'environnement précédents
+
 exit
+REM Quitte le script batch
